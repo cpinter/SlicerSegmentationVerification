@@ -318,8 +318,9 @@ class SegmentationVerificationLogic(ScriptedLoadableModuleLogic):
 
       #TODO: Apply transform if any
 
-      segmentBoundingBox = np.zeros(6)
-      segmentPolyData.GetBounds(segmentBoundingBox)
+      segmentBounds = np.zeros(6)
+      segmentPolyData.GetBounds(segmentBounds)
+      segmentBoundingBox = vtk.vtkBoundingBox(segmentBounds)
       self.segmentBoundingBoxes[segmentID] = segmentBoundingBox
 
   def selectSegment(self, parameterNode, segmentID):
@@ -330,8 +331,9 @@ class SegmentationVerificationLogic(ScriptedLoadableModuleLogic):
       raise ValueError("No segmentation node is selected")
 
     # Center on tooth also in 3D
+    centerPointRas = np.zeros(3)
     boundingBox = self.segmentBoundingBoxes[segmentID]
-    centerPointRas = np.array([(boundingBox[0] + boundingBox[1]) / 2.0, (boundingBox[2] + boundingBox[3]) / 2.0, (boundingBox[4] + boundingBox[5]) / 2.0])
+    boundingBox.GetCenter(centerPointRas)
     layoutManager = slicer.app.layoutManager()
     for threeDViewIndex in range(layoutManager.threeDViewCount) :
       view = layoutManager.threeDWidget(threeDViewIndex).threeDView()
@@ -339,15 +341,42 @@ class SegmentationVerificationLogic(ScriptedLoadableModuleLogic):
       cameraNode = slicer.modules.cameras.logic().GetViewActiveCameraNode(threeDViewNode)
       cameraNode.SetFocalPoint(centerPointRas)
 
-    #TODO: Implement neighboring segment visualization
     showNeighbors = parameterNode.GetParameter("ShowNeighbors") == 'True'
 
     # Show only the selected segment
     #TODO: Allow only one update
     displayNode = segmentationNode.GetDisplayNode()
     for currentSegmentID in segmentationNode.GetSegmentation().GetSegmentIDs():
-      displayNode.SetSegmentVisibility(currentSegmentID, segmentID == currentSegmentID)
+      visibility = segmentID == currentSegmentID
+      opacity = 1.0
+      if showNeighbors and segmentID != currentSegmentID and self.getBoundingBoxCoverage(
+          self.segmentBoundingBoxes[segmentID], self.segmentBoundingBoxes[currentSegmentID]) > 0.01:
+        visibility = True
+        opacity = 0.5
 
+      displayNode.SetSegmentVisibility(currentSegmentID, visibility)
+      displayNode.SetSegmentOpacity(currentSegmentID, opacity)
+
+  def getBoundingBoxCoverage(self, firstBoundingBox, secondBoundingBox):
+    """
+    Returns percentage of first bounding box that is inside the second bounding box.
+    :param vtkBoundingBox firstBoundingBox:
+    :param vtkBoundingBox secondBoundingBox:
+    :return double: Ratio of first bounding box that is inside the second bounding box (0 if no overlap, 1 for full coverage)
+    """
+    intersectBox = vtk.vtkBoundingBox(secondBoundingBox)
+    if not intersectBox.IntersectBox(firstBoundingBox):
+      return 0
+    intersectBoxLengths = np.zeros(3)
+    intersectBox.GetLengths(intersectBoxLengths)
+    intersectBoxVolume = intersectBoxLengths.prod()
+    toothBoxLengths = np.zeros(3)
+    firstBoundingBox.GetLengths(toothBoxLengths)
+    firstBoxVolume = toothBoxLengths.prod()
+
+    regionBoxLengths = np.zeros(3)
+    secondBoundingBox.GetLengths(regionBoxLengths)
+    return intersectBoxVolume / firstBoxVolume
 
 #
 # SegmentationVerificationTest
