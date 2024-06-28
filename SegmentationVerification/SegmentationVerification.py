@@ -344,18 +344,23 @@ class SegmentationVerificationLogic(ScriptedLoadableModuleLogic):
     showNeighbors = parameterNode.GetParameter("ShowNeighbors") == 'True'
 
     # Show only the selected segment
-    #TODO: Allow only one update
     displayNode = segmentationNode.GetDisplayNode()
+    displayNodeWasModified = displayNode.StartModify()
     for currentSegmentID in segmentationNode.GetSegmentation().GetSegmentIDs():
       visibility = segmentID == currentSegmentID
       opacity = 1.0
+      opacity2DFill = 1.0
       if showNeighbors and segmentID != currentSegmentID and self.getBoundingBoxCoverage(
-          self.segmentBoundingBoxes[segmentID], self.segmentBoundingBoxes[currentSegmentID]) > 0.01:
+          self.segmentBoundingBoxes[segmentID], self.segmentBoundingBoxes[currentSegmentID]) > 0.1:
         visibility = True
         opacity = 0.5
+        opacity2DFill = 0.0
 
       displayNode.SetSegmentVisibility(currentSegmentID, visibility)
       displayNode.SetSegmentOpacity(currentSegmentID, opacity)
+      displayNode.SetSegmentOpacity2DFill(currentSegmentID, opacity2DFill)
+
+    displayNode.EndModify(displayNodeWasModified)
 
   def getBoundingBoxCoverage(self, firstBoundingBox, secondBoundingBox):
     """
