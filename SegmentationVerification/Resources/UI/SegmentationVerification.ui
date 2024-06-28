@@ -36,7 +36,7 @@
       </widget>
      </item>
      <item>
-      <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox">
+      <widget class="qMRMLNodeComboBox" name="segmentationNodeComboBox">
        <property name="nodeTypes">
         <stringlist notr="true">
          <string>vtkMRMLSegmentationNode</string>
@@ -91,14 +91,17 @@
    </item>
    <item>
     <widget class="qMRMLSegmentsTableView" name="SegmentsTableView">
-     <property name="visibilityColumnVisible">
-      <bool>false</bool>
+     <property name="selectionMode">
+      <number>1</number>
      </property>
      <property name="statusColumnVisible">
       <bool>false</bool>
      </property>
      <property name="filterBarVisible">
       <bool>true</bool>
+     </property>
+     <property name="textFilter">
+      <string/>
      </property>
      <property name="jumpToSelectedSegmentEnabled">
       <bool>true</bool>
@@ -177,7 +180,7 @@
   <connection>
    <sender>SegmentationVerification</sender>
    <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>MRMLNodeComboBox</receiver>
+   <receiver>segmentationNodeComboBox</receiver>
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
    <hints>
     <hint type="sourcelabel">
@@ -207,7 +210,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>MRMLNodeComboBox</sender>
+   <sender>segmentationNodeComboBox</sender>
    <signal>currentNodeChanged(vtkMRMLNode*)</signal>
    <receiver>SegmentsTableView</receiver>
    <slot>setSegmentationNode(vtkMRMLNode*)</slot>

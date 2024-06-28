@@ -1,4 +1,5 @@
 import logging
+import qt
 import vtk
 import slicer
 from slicer.ScriptedLoadableModule import *
@@ -74,7 +75,11 @@ class SegmentationVerificationWidget(ScriptedLoadableModuleWidget, VTKObservatio
 
     self.ui.showNeighborsCheckBox.clicked.connect(self.updateParameterNodeFromGUI)
 
-    # self.ui.createButton.clicked.connect(self.onCreateButton)
+    self.ui.segmentationNodeComboBox.currentNodeChanged.connect(self.onSegmentationChanged)
+    self.ui.SegmentsTableView.selectionChanged.connect(self.onSegmentSelectionChanged)
+
+    self.ui.nextButton.clicked.connect(self.onNextButton)
+    self.ui.previousButton.clicked.connect(self.onPreviousButton)
 
     # Make sure parameter node is initialized (needed for module reload)
     self.initializeParameterNode()
@@ -153,6 +158,8 @@ class SegmentationVerificationWidget(ScriptedLoadableModuleWidget, VTKObservatio
     # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
     self._updatingGUIFromParameterNode = True
 
+    self.ui.segmentationNodeComboBox.setCurrentNode(self._parameterNode.GetNodeReference("CurrentSegmentationNode"))
+
     showNeighbors = self._parameterNode.GetParameter("ShowNeighbors")
     self.ui.showNeighborsCheckBox.checked = True if showNeighbors == 'True' else False
 
@@ -169,15 +176,104 @@ class SegmentationVerificationWidget(ScriptedLoadableModuleWidget, VTKObservatio
 
     wasModified = self._parameterNode.StartModify()  # Modify all properties in a single batch
 
+    self._parameterNode.SetNodeReferenceID("CurrentSegmentationNode", self.ui.segmentationNodeComboBox.currentNodeID)
+
     self._parameterNode.SetParameter("ShowNeighbors", 'True' if self.ui.showNeighborsCheckBox.checked else 'False')
 
     self._parameterNode.EndModify(wasModified)
+
+  def onSegmentationChanged(self, newSegmentationNode):
+    """
+    Switch to next segment.
+    """
+    if newSegmentationNode:
+      self._parameterNode.SetNodeReferenceID("CurrentSegmentationNode", newSegmentationNode.GetID())
+    else:
+      self._parameterNode.SetNodeReferenceID("CurrentSegmentationNode", "")
+      return
+
+    # Set wait cursor
+    qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
+
+    # Make sure segmentation is shown in 3D
+    newSegmentationNode.CreateClosedSurfaceRepresentation()
+
+    self.logic.initializeSegmentBoundingBoxes(self._parameterNode)
+
+    # Enable next button but disable previous button until next is clicked
+    self.ui.nextButton.setEnabled(True)
+    self.ui.previousButton.setEnabled(False)
+
+    qt.QApplication.restoreOverrideCursor()
 
   def onNextButton(self):
     """
     Switch to next segment.
     """
-    pass
+    segmentationNode = self._parameterNode.GetNodeReference("CurrentSegmentationNode")
+    if not segmentationNode:
+      raise ValueError("No segmentation node is selected")
+
+    # Get next segment ID
+    selectedSegmentIDs = self.ui.SegmentsTableView.selectedSegmentIDs()
+    if len(selectedSegmentIDs) == 0:
+      nextSegmentID = self.ui.SegmentsTableView.segmentIDForRow(0)
+      logging.info(f'Selecting segment at row 0 (ID: {nextSegmentID})')
+    else:
+      selectedSegmentID = selectedSegmentIDs[0]
+      nextRowIndex = self.ui.SegmentsTableView.rowForSegmentID(selectedSegmentID) + 1
+      if nextRowIndex >= self.ui.SegmentsTableView.segmentCount():
+        raise RuntimeError("There is no next segment")
+      nextSegmentID = self.ui.SegmentsTableView.segmentIDForRow(nextRowIndex)
+      logging.info(f'Selecting segment at row {nextRowIndex} (ID: {nextSegmentID})')
+
+    # Select next segment
+    self.ui.SegmentsTableView.setSelectedSegmentIDs([nextSegmentID])
+
+  def onPreviousButton(self):
+    """
+    Switch to previous segment.
+    """
+    segmentationNode = self._parameterNode.GetNodeReference("CurrentSegmentationNode")
+    if not segmentationNode:
+      raise ValueError("No segmentation node is selected")
+
+    # Get previous segment ID
+    selectedSegmentIDs = self.ui.SegmentsTableView.selectedSegmentIDs()
+    if len(selectedSegmentIDs) == 0:
+      previousSegmentID = self.ui.SegmentsTableView.segmentIDForRow(self.ui.SegmentsTableView.segmentCount() - 1)
+      logging.info(f'Selecting segment at row {self.ui.SegmentsTableView.segmentCount() - 1} (ID: {previousSegmentID})')
+    else:
+      selectedSegmentID = selectedSegmentIDs[0]
+      previousRowIndex = self.ui.SegmentsTableView.rowForSegmentID(selectedSegmentID) - 1
+      if previousRowIndex < 0:
+        raise RuntimeError("There is no previous segment")
+      previousSegmentID = self.ui.SegmentsTableView.segmentIDForRow(previousRowIndex)
+      logging.info(f'Selecting segment at row {previousRowIndex} (ID: {previousSegmentID})')
+
+    # Select previous segment
+    self.ui.SegmentsTableView.setSelectedSegmentIDs([previousSegmentID])
+
+  def onSegmentSelectionChanged(self):
+    selectedSegmentIDs = self.ui.SegmentsTableView.selectedSegmentIDs()
+    if len(selectedSegmentIDs) == 0 or len(selectedSegmentIDs) > 1:
+      return
+    selectedSegmentID = selectedSegmentIDs[0]
+
+    # Update next/previous button enabled state
+    currentRowIndex = self.ui.SegmentsTableView.rowForSegmentID(selectedSegmentID)
+    self.ui.nextButton.enabled = (currentRowIndex < self.ui.SegmentsTableView.segmentCount() - 1)
+    self.ui.previousButton.enabled = (currentRowIndex > 0)
+
+    # Center on tooth also in 3D
+    boundingBox = self.logic.segmentBoundingBoxes[selectedSegmentID]
+    centerPointRas = np.array([(boundingBox[0] + boundingBox[1]) / 2.0, (boundingBox[2] + boundingBox[3]) / 2.0, (boundingBox[4] + boundingBox[5]) / 2.0])
+    layoutManager = slicer.app.layoutManager()
+    for threeDViewIndex in range(layoutManager.threeDViewCount) :
+      view = layoutManager.threeDWidget(threeDViewIndex).threeDView()
+      threeDViewNode = view.mrmlViewNode()
+      cameraNode = slicer.modules.cameras.logic().GetViewActiveCameraNode(threeDViewNode)
+      cameraNode.SetFocalPoint(centerPointRas)
 
 
 #
@@ -199,12 +295,34 @@ class SegmentationVerificationLogic(ScriptedLoadableModuleLogic):
     """
     ScriptedLoadableModuleLogic.__init__(self)
 
+    # Cached bounding boxes of all the segments
+    self.segmentBoundingBoxes = {}
+
   def setDefaultParameters(self, parameterNode):
     """
     Initialize parameter node with default settings.
     """
     if not parameterNode.GetParameter("ShowNeighbors"):
       parameterNode.SetParameter("ShowNeighbors", "False")
+
+  def initializeSegmentBoundingBoxes(self, parameterNode):
+    if not parameterNode:
+      raise ValueError("Invalid parameter node")
+    segmentationNode = parameterNode.GetNodeReference("CurrentSegmentationNode")
+    if not segmentationNode:
+      raise ValueError("No segmentation node is selected")
+
+    self.segmentBoundingBoxes = {}
+
+    for segmentID in segmentationNode.GetSegmentation().GetSegmentIDs():
+      segmentPolyData = vtk.vtkPolyData()
+      segmentationNode.GetClosedSurfaceRepresentation(segmentID, segmentPolyData)
+
+      #TODO: Apply transform if any
+
+      segmentBoundingBox = np.zeros(6)
+      segmentPolyData.GetBounds(segmentBoundingBox)
+      self.segmentBoundingBoxes[segmentID] = segmentBoundingBox
 
 
 #
