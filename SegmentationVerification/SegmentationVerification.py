@@ -260,20 +260,18 @@ class SegmentationVerificationWidget(ScriptedLoadableModuleWidget, VTKObservatio
       return
     selectedSegmentID = selectedSegmentIDs[0]
 
+    # Set wait cursor
+    qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
+
     # Update next/previous button enabled state
     currentRowIndex = self.ui.SegmentsTableView.rowForSegmentID(selectedSegmentID)
     self.ui.nextButton.enabled = (currentRowIndex < self.ui.SegmentsTableView.segmentCount() - 1)
     self.ui.previousButton.enabled = (currentRowIndex > 0)
 
-    # Center on tooth also in 3D
-    boundingBox = self.logic.segmentBoundingBoxes[selectedSegmentID]
-    centerPointRas = np.array([(boundingBox[0] + boundingBox[1]) / 2.0, (boundingBox[2] + boundingBox[3]) / 2.0, (boundingBox[4] + boundingBox[5]) / 2.0])
-    layoutManager = slicer.app.layoutManager()
-    for threeDViewIndex in range(layoutManager.threeDViewCount) :
-      view = layoutManager.threeDWidget(threeDViewIndex).threeDView()
-      threeDViewNode = view.mrmlViewNode()
-      cameraNode = slicer.modules.cameras.logic().GetViewActiveCameraNode(threeDViewNode)
-      cameraNode.SetFocalPoint(centerPointRas)
+    # Perform segment selection
+    self.logic.selectSegment(self._parameterNode, selectedSegmentID)
+
+    qt.QApplication.restoreOverrideCursor()
 
 
 #
@@ -323,6 +321,32 @@ class SegmentationVerificationLogic(ScriptedLoadableModuleLogic):
       segmentBoundingBox = np.zeros(6)
       segmentPolyData.GetBounds(segmentBoundingBox)
       self.segmentBoundingBoxes[segmentID] = segmentBoundingBox
+
+  def selectSegment(self, parameterNode, segmentID):
+    if not parameterNode:
+      raise ValueError("Invalid parameter node")
+    segmentationNode = parameterNode.GetNodeReference("CurrentSegmentationNode")
+    if not segmentationNode:
+      raise ValueError("No segmentation node is selected")
+
+    # Center on tooth also in 3D
+    boundingBox = self.segmentBoundingBoxes[segmentID]
+    centerPointRas = np.array([(boundingBox[0] + boundingBox[1]) / 2.0, (boundingBox[2] + boundingBox[3]) / 2.0, (boundingBox[4] + boundingBox[5]) / 2.0])
+    layoutManager = slicer.app.layoutManager()
+    for threeDViewIndex in range(layoutManager.threeDViewCount) :
+      view = layoutManager.threeDWidget(threeDViewIndex).threeDView()
+      threeDViewNode = view.mrmlViewNode()
+      cameraNode = slicer.modules.cameras.logic().GetViewActiveCameraNode(threeDViewNode)
+      cameraNode.SetFocalPoint(centerPointRas)
+
+    #TODO: Implement neighboring segment visualization
+    showNeighbors = parameterNode.GetParameter("ShowNeighbors") == 'True'
+
+    # Show only the selected segment
+    #TODO: Allow only one update
+    displayNode = segmentationNode.GetDisplayNode()
+    for currentSegmentID in segmentationNode.GetSegmentation().GetSegmentIDs():
+      displayNode.SetSegmentVisibility(currentSegmentID, segmentID == currentSegmentID)
 
 
 #
