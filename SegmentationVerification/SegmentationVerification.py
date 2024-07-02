@@ -222,7 +222,7 @@ class SegmentationVerificationWidget(ScriptedLoadableModuleWidget, VTKObservatio
     else:
       selectedSegmentID = selectedSegmentIDs[0]
       nextRowIndex = self.ui.SegmentsTableView.rowForSegmentID(selectedSegmentID) + 1
-      if nextRowIndex >= self.ui.SegmentsTableView.segmentCount():
+      if nextRowIndex >= self.ui.SegmentsTableView.segmentCount:
         raise RuntimeError("There is no next segment")
       nextSegmentID = self.ui.SegmentsTableView.segmentIDForRow(nextRowIndex)
       logging.info(f'Selecting segment at row {nextRowIndex} (ID: {nextSegmentID})')
@@ -241,8 +241,8 @@ class SegmentationVerificationWidget(ScriptedLoadableModuleWidget, VTKObservatio
     # Get previous segment ID
     selectedSegmentIDs = self.ui.SegmentsTableView.selectedSegmentIDs()
     if len(selectedSegmentIDs) == 0:
-      previousSegmentID = self.ui.SegmentsTableView.segmentIDForRow(self.ui.SegmentsTableView.segmentCount() - 1)
-      logging.info(f'Selecting segment at row {self.ui.SegmentsTableView.segmentCount() - 1} (ID: {previousSegmentID})')
+      previousSegmentID = self.ui.SegmentsTableView.segmentIDForRow(self.ui.SegmentsTableView.segmentCount - 1)
+      logging.info(f'Selecting segment at row {self.ui.SegmentsTableView.segmentCount - 1} (ID: {previousSegmentID})')
     else:
       selectedSegmentID = selectedSegmentIDs[0]
       previousRowIndex = self.ui.SegmentsTableView.rowForSegmentID(selectedSegmentID) - 1
@@ -265,7 +265,7 @@ class SegmentationVerificationWidget(ScriptedLoadableModuleWidget, VTKObservatio
 
     # Update next/previous button enabled state
     currentRowIndex = self.ui.SegmentsTableView.rowForSegmentID(selectedSegmentID)
-    self.ui.nextButton.enabled = (currentRowIndex < self.ui.SegmentsTableView.segmentCount() - 1)
+    self.ui.nextButton.enabled = (currentRowIndex < self.ui.SegmentsTableView.segmentCount - 1)
     self.ui.previousButton.enabled = (currentRowIndex > 0)
 
     # Perform segment selection
