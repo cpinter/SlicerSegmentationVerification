@@ -1,5 +1,5 @@
 #-----------------------------------------------------------------------------
-set(MODULE_NAME CreateAnalyticalBodies)
+set(MODULE_NAME SegmentationVerification)
 
 #-----------------------------------------------------------------------------
 set(MODULE_PYTHON_SCRIPTS
