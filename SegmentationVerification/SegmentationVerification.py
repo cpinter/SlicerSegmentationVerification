@@ -330,10 +330,8 @@ class SegmentationVerificationLogic(ScriptedLoadableModuleLogic):
     if not segmentationNode:
       raise ValueError("No segmentation node is selected")
 
-    # Center on tooth also in 3D
-    centerPointRas = np.zeros(3)
-    boundingBox = self.segmentBoundingBoxes[segmentID]
-    boundingBox.GetCenter(centerPointRas)
+    # Center on segment also in 3D
+    centerPointRas = segmentationNode.GetSegmentCenterRAS(segmentID)
     layoutManager = slicer.app.layoutManager()
     for threeDViewIndex in range(layoutManager.threeDViewCount) :
       view = layoutManager.threeDWidget(threeDViewIndex).threeDView()
