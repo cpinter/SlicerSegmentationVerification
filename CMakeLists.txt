@@ -4,11 +4,11 @@ project(SegmentationVerification)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
-set(EXTENSION_HOMEPAGE "https://www.slicer.org/wiki/Documentation/Nightly/Extensions/SegmentationVerification")
+set(EXTENSION_HOMEPAGE "https://github.com/cpinter/SlicerSegmentationVerification")
 set(EXTENSION_CONTRIBUTORS "Csaba Pinter (EBATINCA, S.L.)")
 set(EXTENSION_DESCRIPTION "Tools for verifying the result of AI segmentation.")
-set(EXTENSION_ICONURL "https://www.example.com/Slicer/Extensions/SegmentationVerification.png")
-set(EXTENSION_SCREENSHOTURLS "https://www.example.com/Slicer/Extensions/SegmentationVerification/Screenshots/1.png")
+set(EXTENSION_ICONURL "https://raw.githubusercontent.com/cpinter/SlicerSegmentationVerification/main/SegmentationVerification.png")
+set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/cpinter/SlicerSegmentationVerification/main/SegmentationVerification_Screenshot.png")
 set(EXTENSION_DEPENDS "NA") # Specified as a list or "NA" if no dependencies
 
 #-----------------------------------------------------------------------------
