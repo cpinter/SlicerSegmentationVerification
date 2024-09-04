@@ -1,6 +1,6 @@
 # Segmentation Verification
 
-Extension containing a 3D Slicer module for verifying the result of AI segmentation. The module allows quick review of each segment (mask, label) in a segmentation.
+Extension containing a 3D Slicer module (Segmentation Verification) for verifying the result of AI segmentation. The module allows quick review of each segment (mask, label) in a segmentation.
 
 ![image](https://raw.githubusercontent.com/cpinter/SlicerSegmentationVerification/main/SegmentationVerification.png)
 
