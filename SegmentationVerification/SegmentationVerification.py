@@ -229,6 +229,7 @@ class SegmentationVerificationWidget(ScriptedLoadableModuleWidget, VTKObservatio
 
     # Select next segment
     self.ui.SegmentsTableView.setSelectedSegmentIDs([nextSegmentID])
+    segmentationNode.GetDisplayNode().Modified()  # Workaround to make sure visibilities are updated
 
   def onPreviousButton(self):
     """
@@ -253,6 +254,7 @@ class SegmentationVerificationWidget(ScriptedLoadableModuleWidget, VTKObservatio
 
     # Select previous segment
     self.ui.SegmentsTableView.setSelectedSegmentIDs([previousSegmentID])
+    segmentationNode.GetDisplayNode().Modified()  # Workaround to make sure visibilities are updated
 
   def onSegmentSelectionChanged(self):
     selectedSegmentIDs = self.ui.SegmentsTableView.selectedSegmentIDs()
